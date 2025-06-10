@@ -1,0 +1,1 @@
+## Proyecto 7 - Operaciones y recuperación ante desastres locales para infraestructura Terraform
