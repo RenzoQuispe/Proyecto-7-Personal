@@ -1,0 +1,154 @@
+From b42b47eaff3e8e2bee0db265085eab443ad0018c Mon Sep 17 00:00:00 2001
+From: RenzoQuispe <renzo123cd@gmail.com>
+Date: Mon, 9 Jun 2025 03:44:29 -0500
+Subject: [PATCH 4/6] feat(script): (Issue #4) agregar script backup_state.sh
+
+---
+ scripts/backup_state.sh | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+ mode change 100644 => 100755 scripts/backup_state.sh
+
+diff --git a/scripts/backup_state.sh b/scripts/backup_state.sh
+old mode 100644
+new mode 100755
+index e69de29..b51f9af
+--- a/scripts/backup_state.sh
++++ b/scripts/backup_state.sh
+@@ -0,0 +1,11 @@
++#!/bin/bash
++# se crea la carpeta backups si no existe
++ruta_a_este_script="$(realpath "$0")"
++ruta_carpeta_scripts="$(dirname "$ruta_a_este_script")"
++ruta_raiz_proyecto="$(dirname "$ruta_carpeta_scripts")"
++mkdir -p "$ruta_raiz_proyecto/backups"
++# creacion de una copia de terraform.tfstate a backups, se coloca timestamp para diferenciar entre backups
++timestamp="$(date +"%Y-%m-%d_%H-%M-%S")"
++ruta_terraform_state="$ruta_raiz_proyecto/iac/terraform.tfstate"
++ruta_nuevo_backup="$ruta_raiz_proyecto/backups/tfstate_${timestamp}.backup"
++cp "$ruta_terraform_state" "$ruta_nuevo_backup"
+\ No newline at end of file
+-- 
+2.47.2
+
+
+From 81e0f128599e722a1f872fae66b5a38c3adca2be Mon Sep 17 00:00:00 2001
+From: RenzoQuispe <renzo123cd@gmail.com>
+Date: Mon, 9 Jun 2025 07:18:37 -0500
+Subject: [PATCH 5/6] feat(script): (Issue #5) agregar script restore_state.sh
+
+---
+ scripts/restore_state.sh | 41 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 41 insertions(+)
+ mode change 100644 => 100755 scripts/restore_state.sh
+
+diff --git a/scripts/restore_state.sh b/scripts/restore_state.sh
+old mode 100644
+new mode 100755
+index e69de29..4dba678
+--- a/scripts/restore_state.sh
++++ b/scripts/restore_state.sh
+@@ -0,0 +1,41 @@
++#!/bin/bash
++# Este script muestra la lista de los archivos backup y permita elegir uno mediante un menu y lo copia en iac/terraform.tfstate
++# rutas necesarias para el script
++ruta_a_este_script=$(realpath "$0")
++ruta_carpeta_scripts=$(dirname "$ruta_a_este_script")
++ruta_raiz_proyecto=$(dirname "$ruta_carpeta_scripts")
++ruta_carpeta_backups="$ruta_raiz_proyecto/backups"
++ruta_terraform_state="$ruta_raiz_proyecto/iac/terraform.tfstate"
++# lista de los archivos_backups que hay en la carpeta backups
++archivos_backups=($(ls "$ruta_carpeta_backups"))
++numero_backups=${#archivos_backups[@]}
++# verificar si hay archivos backup
++if [ "$numero_backups" -eq 0 ]; then
++  echo "No se encontraron archivos backups"
++  exit 1
++fi
++# menu de backups para escoger
++echo "Lista de backups"
++for i in "${!archivos_backups[@]}"; do
++  numero=$((i+1))
++  echo "$numero- ${archivos_backups[$i]}"
++done
++# leer la opcion escogida
++while true; do
++  read -p "Escribe la opcion del backup que quieres restaurar: " opcion
++  # verificar el valor ingresado sea valido
++  if [ "$opcion" -ge 1 ]; then
++    if [ "$opcion" -le "$numero_backups" ]; then
++      break
++    else
++      echo "no existe esa opcion"
++    fi
++  else
++    echo "no existe esa opcion"
++  fi
++done
++# copiar el backup escogido a iac/terraform.tfstate
++backup_escogido="${archivos_backups[$((opcion-1))]}"
++ruta_backup_escogido="$ruta_carpeta_backups/$backup_escogido"
++cp "$ruta_backup_escogido" "$ruta_terraform_state"
++
+-- 
+2.47.2
+
+
+From ea432be4dfdd81ff6183eabccfd4804091fbd573 Mon Sep 17 00:00:00 2001
+From: RenzoQuispe <renzo123cd@gmail.com>
+Date: Mon, 9 Jun 2025 10:33:07 -0500
+Subject: [PATCH 6/6] refactor(sh): (Issue #5) mejorar manejo de errores en
+ restore_state.sh
+
+---
+ scripts/restore_state.sh | 20 +++++++++++++++-----
+ 1 file changed, 15 insertions(+), 5 deletions(-)
+
+diff --git a/scripts/restore_state.sh b/scripts/restore_state.sh
+index 4dba678..38e21f4 100755
+--- a/scripts/restore_state.sh
++++ b/scripts/restore_state.sh
+@@ -6,6 +6,11 @@ ruta_carpeta_scripts=$(dirname "$ruta_a_este_script")
+ ruta_raiz_proyecto=$(dirname "$ruta_carpeta_scripts")
+ ruta_carpeta_backups="$ruta_raiz_proyecto/backups"
+ ruta_terraform_state="$ruta_raiz_proyecto/iac/terraform.tfstate"
++# verificar que la carpeta de backups existe
++if [ ! -d "$ruta_carpeta_backups" ]; then
++  echo "la carpeta de backups no existe"
++  exit 1
++fi
+ # lista de los archivos_backups que hay en la carpeta backups
+ archivos_backups=($(ls "$ruta_carpeta_backups"))
+ numero_backups=${#archivos_backups[@]}
+@@ -23,19 +28,24 @@ done
+ # leer la opcion escogida
+ while true; do
+   read -p "Escribe la opcion del backup que quieres restaurar: " opcion
+-  # verificar el valor ingresado sea valido
+-  if [ "$opcion" -ge 1 ]; then
+-    if [ "$opcion" -le "$numero_backups" ]; then
+-      break
++  # verificar que el valor ingresado sea valido
++  if [[ "$opcion" =~ ^[0-9]+$ ]]; then  # uso de expresion regular para validar que la entrada se un numero entero positivo
++    if [ "$opcion" -ge 1 ]; then
++      if [ "$opcion" -le "$numero_backups" ]; then
++        break
++      else
++        echo "no existe esa opcion"
++      fi
+     else
+       echo "no existe esa opcion"
+     fi
+   else
+-    echo "no existe esa opcion"
++    echo "no existe esa opcion, ingresar un numero valido"
+   fi
+ done
+ # copiar el backup escogido a iac/terraform.tfstate
+ backup_escogido="${archivos_backups[$((opcion-1))]}"
+ ruta_backup_escogido="$ruta_carpeta_backups/$backup_escogido"
+ cp "$ruta_backup_escogido" "$ruta_terraform_state"
++echo "backup realizado"
+ 
+-- 
+2.47.2
+
