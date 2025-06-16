@@ -5,10 +5,14 @@ Quispe Villena Renzo - renzo.quispe.v@uni.pe
 URL del repositorio grupal: https://github.com/Grupo-9-CC3S2/Proyecto-7
 
 ### Aportes al proyecto
-
-Me encargue del desarrollo de los scripts: backup_state.sh y restore_state.sh
+#### Sprint 1
+Me encargue del desarrollo de los scripts: backup_state.sh y restore_state.sh:
 - El script backup_state.sh copia iac/terraform.tfstate a una carpeta backups con timestamp (tfstate_timestamp.backup). El script debe crear la carpeta si no existe.
 - El script restore_state.sh lista los archivos de backups y permita elegir uno mediante menú, y entonces lo copia como iac/terraform.tfstate.
+#### Sprint 2
+Me encargue de actualizar los scripts backup_state.sh y restore_state.sh:
+- El script backup_state verifica que iac/terraform.tfstate existe antes de realizar el backup.
+- El script restore_state.sh valida la integridad del formato JSON en el backup, usa jq para verificar que la clave version exista y que vale 4.
 
 ### Funcionamiento de scripts
 ```markdown
