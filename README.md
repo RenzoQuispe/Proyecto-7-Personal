@@ -19,13 +19,13 @@ Me encargue de actualizar los scripts backup_state.sh y restore_state.sh:
 - El script restore_state.sh ahora permite restaurar incrementalmente y muestra diferencias entre el backup escogido por el usuario y el terraform.tfstate actual antes de sobrescribir.
 
 ### Requisitos técnicos
-
+```
 | Herramientas | Versión       |
 | Terraform    | 1.12.1        |
 |    Bash      | >= 5.1.16     |
 |     jq       | >= 1.6        |
 |    rsync     | >= 3.1.0      |
-
+```
 ### Funcionamiento de scripts
 ```markdown
 git clone https://github.com/RenzoQuispe/Proyecto-7-Personal.git
