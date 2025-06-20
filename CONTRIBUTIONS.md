@@ -37,3 +37,12 @@ Pull request grupal: [#25](https://github.com/Grupo-9-CC3S2/Proyecto-7/pull/25)
 - 2025-06-15: Merge pull request hecho tras conversacion con el equipo. Pull request propuesto por Daren Herrera de feat/balanceador-logica sobre develop.
 Commit: [`Merge pull request #26 de feat/balanceador-logica sobre develop`](https://github.com/Grupo-9-CC3S2/Proyecto-7/commit/850380ecffed09f2b92c685c97d50802f7424748).
 Pull request grupal: [#26](https://github.com/Grupo-9-CC3S2/Proyecto-7/pull/26)
+
+## Sprint 3
+- 2025-06-19: Actualize el script backup_state.sh, ahora guarda copias incrementales (solo cambios respecto al backup previo, usando rsync)
+Commit: [`feat(script): (Issue #31) actualizar script backup_state.sh con logica de copias incrementales usando rsync`](https://github.com/Grupo-9-CC3S2/Proyecto-7/pull/36/commits/eb782a01525737d4c4a9c480eea376160f00197c).
+Pull request grupal: [#36](https://github.com/Grupo-9-CC3S2/Proyecto-7/pull/36)
+
+- 2025-06-19: Actualize script restore_state.sh, ahora permite restaurar incrementalmente y muestra diferencias entre el backup escogido por el usuario y el terraform.tfstate actual antes de sobrescribir.
+Commit: [`feat(script): (Issue #32) actualizar script restore_state.sh con logica de restauracion incremental y mostrar diferencias antes de sobrescribir`](https://github.com/Grupo-9-CC3S2/Proyecto-7/pull/36/commits/6f2f9e2adcf3bbc49396e608b8eb5540003166ca).
+Pull request grupal: [#36](https://github.com/Grupo-9-CC3S2/Proyecto-7/pull/36)
