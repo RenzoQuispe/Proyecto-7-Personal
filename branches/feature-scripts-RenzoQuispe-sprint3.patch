@@ -1,0 +1,118 @@
+From eb782a01525737d4c4a9c480eea376160f00197c Mon Sep 17 00:00:00 2001
+From: RenzoQuispe <renzo123cd@gmail.com>
+Date: Thu, 19 Jun 2025 22:25:39 -0500
+Subject: [PATCH 1/2] feat(script): (Issue #31) actualizar script
+ backup_state.sh con logica de copias incrementales usando rsync
+
+---
+ scripts/backup_state.sh | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/scripts/backup_state.sh b/scripts/backup_state.sh
+index acdb002..3ca442e 100755
+--- a/scripts/backup_state.sh
++++ b/scripts/backup_state.sh
+@@ -12,5 +12,15 @@ if [ ! -f "$ruta_terraform_state" ]; then
+   echo "iac/terraform.tfstate no existe"
+   exit 1
+ fi
++# crear carpeta para el nuevo backup y dentro creamos una copia incremental (cambios respecto al backup previo usando rsync --link-dest)
++ultimo_backup=$(ls -1dt "$ruta_raiz_proyecto"/backups/tfstate_*.backup/ 2>/dev/null | head -n 1) # buscar ultimo backup
+ ruta_nuevo_backup="$ruta_raiz_proyecto/backups/tfstate_${timestamp}.backup"
+-cp "$ruta_terraform_state" "$ruta_nuevo_backup"
+\ No newline at end of file
++mkdir -p "$ruta_nuevo_backup"
++# hacer el backup incremental
++if [ -n "$ultimo_backup" ]; then
++  rsync -a --link-dest="$ultimo_backup" "$ruta_terraform_state" "$ruta_nuevo_backup/" # si el archivo es igual crea un link al archivo anterior y si es distinto copia un nuevo archivo completo
++  echo "se creo un backup incremental"
++else
++  cp "$ruta_terraform_state" "$ruta_nuevo_backup/"
++  echo "se creo un backup inicial"
++fi
+-- 
+2.47.2
+
+
+From 6f2f9e2adcf3bbc49396e608b8eb5540003166ca Mon Sep 17 00:00:00 2001
+From: RenzoQuispe <renzo123cd@gmail.com>
+Date: Thu, 19 Jun 2025 22:27:24 -0500
+Subject: [PATCH 2/2] feat(script): (Issue #32) actualizar script
+ restore_state.sh con logica de restauracion incremental y mostrar diferencias
+ antes de sobrescribir
+
+---
+ scripts/restore_state.sh | 38 ++++++++++++++++++++++++++++----------
+ 1 file changed, 28 insertions(+), 10 deletions(-)
+
+diff --git a/scripts/restore_state.sh b/scripts/restore_state.sh
+index 4dc27b9..70ae3fd 100755
+--- a/scripts/restore_state.sh
++++ b/scripts/restore_state.sh
+@@ -13,25 +13,31 @@ if [ ! -d "$ruta_carpeta_backups" ]; then
+ fi
+ # lista de los archivos_backups que hay en la carpeta backups
+ archivos_backups=()
+-for archivo in "$ruta_carpeta_backups"/*.backup; do
+-  # verificar la integraidad del JSON
++for carpeta in "$ruta_carpeta_backups"/*.backup; do
++  archivo="$carpeta/terraform.tfstate"
++  # verificar la integridad del JSON
+   if jq empty "$archivo" >/dev/null 2>&1; then
+     # verificar si tiene la clave version
+     if jq -e 'has("version")' "$archivo" >/dev/null 2>&1; then
+       # verificar si version es 4
+       if [ "$(jq -r '.version' "$archivo")" -eq 4 ] >/dev/null 2>&1; then
+-        archivos_backups+=("$(basename "$archivo")")
++        archivos_backups+=("$(basename "$carpeta")")
+       else
+-        echo "backup $(basename "$archivo") tiene version no valida, debe ser 4"
++        echo "backup $(basename "$carpeta") tiene version no valida, debe ser 4"
+       fi
+     else
+-      echo "backup $(basename "$archivo") presenta error version"
++      echo "backup $(basename "$carpeta") presenta error version"
+     fi
+   else
+-    echo "backup $(basename "$archivo") dañado"
++    echo "backup $(basename "$carpeta") dañado"
+   fi
+ done
++# numero de backups validos
+ numero_backups=${#archivos_backups[@]}
++if [ "$numero_backups" -eq 0 ]; then
++  echo "no se encontraron backups validos"
++  exit 1
++fi
+ # menu de backups para escoger
+ echo "Lista de backups validos"
+ for i in "${!archivos_backups[@]}"; do
+@@ -56,9 +62,21 @@ while true; do
+     echo "no existe esa opcion, ingresar un numero valido"
+   fi
+ done
+-# copiar el backup escogido a iac/terraform.tfstate
+ backup_escogido="${archivos_backups[$((opcion-1))]}"
+-ruta_backup_escogido="$ruta_carpeta_backups/$backup_escogido"
+-cp "$ruta_backup_escogido" "$ruta_terraform_state"
+-echo "backup realizado"
++ruta_backup_escogido="$ruta_carpeta_backups/$backup_escogido/terraform.tfstate"
++# mostrar diferencias entre terraform.tfstate actual y backup escogido
++if diff -q "$ruta_backup_escogido" "$ruta_terraform_state" >/dev/null; then
++  echo "no hay diferencias entre terraform.tfstate actual y el backup"
++else
++  echo " Diferencias:"
++  diff -u "$ruta_terraform_state" "$ruta_backup_escogido"
++  read -p "Escribe si para confirmar la restauracion:" respuesta
++  if [ "$respuesta" = "si" ]; then
++    cp "$ruta_backup_escogido" "$ruta_terraform_state"
++    echo "backup realizado"
++  else
++    echo "restauracion cancelada"
++  fi
++fi
++
+ 
+-- 
+2.47.2
+
